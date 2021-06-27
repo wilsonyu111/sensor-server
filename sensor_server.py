@@ -10,6 +10,42 @@ COUNTDOWN = 10 # every 12 hours do a sensor check to see if any is offline
 #app = Flask(__name__, static_folder = "/home/pi/esp_sensor_server/templates")
 app = Flask(__name__)
 
+# this is a temporary function used to test the servo
+# take this offline or make it avaliable only in private network
+# this function will send the servo testing html file
+# that allows for the control of a servo
+@app.route ("/fancontrol", methods=["GET"])
+def fanController():
+
+        return render_template ("fanControl.html", default_value = 20) # render fan control page
+
+# This is an overloaded fanController function
+# It takes a fanValue variable and update the html page with this value
+# the default value is 20
+def fanController(fanValue):
+        return render_template ("fanControl.html", default_value=fanValue) # render fan control page
+
+# This function is for updating/storing online fan controlling devices
+# If a device has been inactive for 24 hour, it should be removed from
+# the array (decide what data structure to use)
+# 
+@app.route ("/fanControllerOnline", methods=["PUT"])
+def updateControllerProfile():
+
+        # store the ip of each controller
+        # store the time when it's online
+        # store the location name
+        # store mac or chip id??
+        # if it already exist update these values
+        return None
+
+
+@app.route ("/fancontrol", methods=["POST"])
+def fanControllerValue():
+        sliderValue = request.form["fanSpeed"] # get the fan speed value from form request
+        print (sliderValue) 
+        return fanController(sliderValue) # return the original page, will change later
+
 @app.route('/', methods=['GET']) # default home page
 def sensors():
 
@@ -52,16 +88,10 @@ def get_data ():
 
                 tempRecords[location][1] = tempF # update temp in F
                 tempRecords[location][2] = hud # hudmidity
+                tempRecords[location][3] = datetime.now().strftime("%Y/%m/%d %I:%M %p") # update time in 12 hour format
                 
-                if tempRecords[location][4] != "":
-                        lastActiveTime = lastActive (tempRecords[location][4])
-                else:
-                        lastActiveTime = "seconds ago"
-
-                tempRecords[location][3] =  lastActiveTime # how many days, hour, minutes or seconds since it was last active
-                tempRecords[location][4] = datetime.now().strftime("%Y/%m/%d %I:%M %p") # update time in 12 hour format
         else: # if a location does not exist in dictionary add it
-                tempArr = ["room " + location, tempF, hud, "seconds ago", datetime.now().strftime("%Y/%m/%d %I:%M %p")] # update time in 12 hour format
+                tempArr = ["room " + location, tempF, hud, datetime.now().strftime("%Y/%m/%d %I:%M %p")] # update time in 12 hour format
                 tempRecords[location] = tempArr # add an array to the dictionary pair
         
         if timeUp:
