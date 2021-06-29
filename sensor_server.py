@@ -52,11 +52,16 @@ def get_data ():
 
                 tempRecords[location][1] = tempF # update temp in F
                 tempRecords[location][2] = hud # hudmidity
+                lastActiveTime = datetime.now().strftime("%Y/%m/%d %I:%M %p")
                 
+
+                '''
                 if tempRecords[location][4] != "":
                         lastActiveTime = lastActive (tempRecords[location][4])
                 else:
                         lastActiveTime = "seconds ago"
+
+                '''
 
                 tempRecords[location][3] =  lastActiveTime # how many days, hour, minutes or seconds since it was last active
                 tempRecords[location][4] = datetime.now().strftime("%Y/%m/%d %I:%M %p") # update time in 12 hour format
