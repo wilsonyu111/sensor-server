@@ -10,6 +10,7 @@ COUNTDOWN = 10 # every 12 hours do a sensor check to see if any is offline
 #app = Flask(__name__, static_folder = "/home/pi/esp_sensor_server/templates")
 app = Flask(__name__)
 
+'''
 # this is a temporary function used to test the servo
 # take this offline or make it avaliable only in private network
 # this function will send the servo testing html file
@@ -45,7 +46,7 @@ def fanControllerValue():
         sliderValue = request.form["fanSpeed"] # get the fan speed value from form request
         print (sliderValue) 
         return fanController(sliderValue) # return the original page, will change later
-
+'''
 @app.route('/', methods=['GET']) # default home page
 def sensors():
 
@@ -59,6 +60,7 @@ def get_data ():
         tempF = data["temp"]
         hud = data["hud"]
         location = data["location"] # remember to update the controllers to send only numbers!!!!
+        light_status = data["light"]
         noSensor = ["no sensor","","","",""]
         global timeUp
 
@@ -74,6 +76,7 @@ def get_data ():
         # [1] = temp in F
         # [2] = hudmidity
         # [3] = last active
+        # [4] = light is on or off
         #print ("length of records: " + str(len(tempRecords)))
 
         if int(location) > highestNum:
@@ -89,15 +92,18 @@ def get_data ():
                 tempRecords[location][1] = tempF # update temp in F
                 tempRecords[location][2] = hud # hudmidity
                 tempRecords[location][3] = datetime.now().strftime("%Y/%m/%d %I:%M %p") # update time in 12 hour format
+                tempRecords[location][4] = light_status
                 
         else: # if a location does not exist in dictionary add it
-                tempArr = ["room " + location, tempF, hud, datetime.now().strftime("%Y/%m/%d %I:%M %p")] # update time in 12 hour format
+                tempArr = ["room " + location, tempF, hud, datetime.now().strftime("%Y/%m/%d %I:%M %p"), "unknown"] # update time in 12 hour format
                 tempRecords[location] = tempArr # add an array to the dictionary pair
         
+        '''
         if timeUp:
                 #check_sensor_down()
                 timeUp = False
                 startTimer()
+        '''
         	
         return "received"
 
