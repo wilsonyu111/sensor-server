@@ -1,18 +1,80 @@
-h1 {
-    color: palevioletred
+h1, h2, h3, h4{
+    color: #D4ECDD
 }
 
-.temperature
+.info_container
 {
-    color: steelblue
+    display:flex;
+    padding:10px;
+    flex-direction: column;
+    align-items:center;
+    flex-wrap: wrap;
 }
 
-.hudmidity
+.info_container div
 {
-    color: sienna
+    padding:21px;
 }
 
-.active
+.info_division
 {
-    color: black
+    display:flex;
+    padding:10px;
+    align-items:center;
+    flex-wrap: wrap;
+    order: 1;
+}
+
+.main_box 
+{
+    display:flex;
+    align-items:center;
+    order: 0;
+    border-radius: 130px;
+    background: #345b63;
+    width: 189pxpx;
+    height: 135px;
+    margin: 22px;
+}
+.main_box div
+{
+    padding:0px;
+}
+
+.font_division
+{
+    width: 100px;
+}
+
+.icon
+{
+    display:flex;
+    order: 0;
+}
+
+.font_division
+{
+    display:flex;
+    order: 1;
+    flex-direction: column;
+    align-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.location
+{
+
+    display: flex;
+    order: 0;
+    border-radius: 34px;
+    background: #345b63;
+    width: 100px;
+    height: 29px;
+    align-content: center;
+    align-items: center;
+}
+
+body
+{
+    background-color: #112031;
 }

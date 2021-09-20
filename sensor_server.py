@@ -60,7 +60,12 @@ def get_data ():
         tempF = data["temp"]
         hud = data["hud"]
         location = data["location"] # remember to update the controllers to send only numbers!!!!
-        light_status = data["light"]
+        if "light" in data:
+
+                light_status = data["light"]
+        else:
+                light_status = "N/A"
+
         noSensor = ["no sensor","","","",""]
         global timeUp
 
@@ -80,10 +85,10 @@ def get_data ():
         #print ("length of records: " + str(len(tempRecords)))
 
         if int(location) > highestNum:
-        #since the html need to loop through the dictionary using index
-        #and all sensors are named based on numbers
-        #This will give me the highest number that are connected
-        #so I can loop through all these sensors up till the highest one
+                #since the html need to loop through the dictionary using index
+                #and all sensors are named based on numbers
+                #This will give me the highest number that are connected
+                #so I can loop through all these sensors up till the highest one
                 
                 highestNum = int(location)
 
@@ -95,15 +100,8 @@ def get_data ():
                 tempRecords[location][4] = light_status
                 
         else: # if a location does not exist in dictionary add it
-                tempArr = ["room " + location, tempF, hud, datetime.now().strftime("%Y/%m/%d %I:%M %p"), "unknown"] # update time in 12 hour format
+                tempArr = ["room " + location, tempF, hud, datetime.now().strftime("%Y/%m/%d %I:%M %p"), light_status] # update time in 12 hour format
                 tempRecords[location] = tempArr # add an array to the dictionary pair
-        
-        '''
-        if timeUp:
-                #check_sensor_down()
-                timeUp = False
-                startTimer()
-        '''
         	
         return "received"
 
