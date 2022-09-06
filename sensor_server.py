@@ -10,7 +10,7 @@ tempRecords = {}
 port = 8086
 
 # app = Flask(__name__)
-app = Flask(__name__, static_url_path='', static_folder='frontend/build')
+app = Flask(__name__, static_url_path='', static_folder='build')
 CORS(app)
 
 # @app.route('/', methods=['GET'])  # default home page
