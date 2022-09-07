@@ -40,7 +40,6 @@ def receiveData():
             updateSesnor = tempRecords[sensor_id]  # get the sensor object
             # updates temp, hud and last active
             updateSesnor.updateData(hud, tempF)
-            print(updateSesnor.toString())
 
         else:  # if a location does not exist in dictionary add it
 
