@@ -31,8 +31,8 @@ def getData():
 def receiveData():
 
         data = request.get_json()
-        tempF = int(data["temp"])
-        hud = int(data["hud"])
+        tempF = float(data["temp"])
+        hud = float(data["hud"])
         sensor_id = data["sensor_id"]
 
         if (sensor_id in tempRecords):  # if the key exist

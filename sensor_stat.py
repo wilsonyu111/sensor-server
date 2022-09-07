@@ -2,7 +2,7 @@ import datetime
 
 class sensor:
 
-    def __init__(self, sensor_id:str, temp:int,hudm:int, database="N/A"):
+    def __init__(self, sensor_id:str, temp:float,hudm:float, database="N/A"):
         self.temp = temp
         self.hudm = hudm
         self.lastActive = self.__getLastActive()
