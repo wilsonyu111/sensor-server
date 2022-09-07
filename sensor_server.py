@@ -1,10 +1,8 @@
 from sensor_stat import sensor
-from logging import exception
 # from flask_cors import CORS 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, request, send_from_directory
 import json
 import datetime
-import json
 
 tempRecords = {}
 port = 8086
@@ -13,12 +11,6 @@ port = 8086
 app = Flask(__name__, static_url_path='', static_folder='build')
 # CORS(app)
 
-# @app.route('/', methods=['GET'])  # default home page
-# def sensors():
-
-#     # render html file in templates folder
-#     return render_template("build/index.html")
-#     # return send_from_directory(app.static_folder, 'index.html')
 @app.route("/",  methods=['GET'])
 def sensors():
     return send_from_directory(app.static_folder,'index.html')

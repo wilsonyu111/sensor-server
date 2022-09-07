@@ -1,6 +1,4 @@
 import datetime
-# import pymongo
-# from mongoengine import *
 
 class sensor:
 
