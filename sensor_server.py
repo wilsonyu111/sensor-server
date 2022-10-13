@@ -1,3 +1,4 @@
+from tkinter import W
 from sensor_stat import sensor
 from flask_cors import CORS 
 from flask import Flask, request, send_from_directory, session, make_response
@@ -70,6 +71,7 @@ def receiveData():
 
 
 # ----------------------------------------------------------------------------------
+# restart sensor
     
 @app.route('/restartSensor', methods=['GET'])
 def restartSensor():
@@ -78,6 +80,7 @@ def restartSensor():
     return message, status_code
 
 # ----------------------------------------------------------------------------------
+# check if sensor is online
 
 @app.route('/sensorOnline', methods=['GET'])
 def sensorHeartBeat():
@@ -86,22 +89,67 @@ def sensorHeartBeat():
     return message, status_code
 
 # ----------------------------------------------------------------------------------
+# request sensor config data
+# check if data already exist, if it does send a request to verify timestamp
+# if data does not exist or timestamp is not the same, request the data to be sent
+
 @app.route('/sensorConfig', methods=['GET'])
 def sensorConfig():
     
-    (message, status_code, jsonBody) = sendHttpToSensor(req=request, URL_path="/serverStat")
-    return json.dumps(jsonBody,  indent=1), status_code
+    try :
+         data = request.get_json()
+    except:
+        return "bad request", 400 
+
+    status_code = -1
+    sensorID = data["MAC_ADDRESS"]
+    if sensorID in tempRecords:
+        # send timestamp verification request to sensor
+        status_code = sendHttpToSensor(req=None, URL_path="/checkTimestamp", macadd=sensorID)[0]
+        sensorObj = sensor(tempRecords[sensorID])
+        if  status_code == 304:
+            return json.dumps( sensorObj.getConfigDict(), indent=1), 200
+        else:
+            
+            # destruct tuple
+            (_, status_code, dataDict) = sendHttpToSensor(req=request, URL_path="/serverStat")
+            # update the data to match sensor
+            
+            configTime = int(dataDict["modified_time"])
+            ipadd = dataDict["sensor_IP"]
+            destPort=int(dataDict["destination_port"])
+            ssid = dataDict["ssid"]
+            installed_light = bool(dataDict["installed_light"])
+            sleepTimer = int(dataDict["sleep_time"])
+            listenPort = int("listen_port")
+            locationName = dataDict["location_name"]
+            
+            sensorObj.updateDeviceConfig(configTime=configTime, ipadd=ipadd, destPort=destPort, 
+                                         ssid=ssid, installed_light=installed_light, sleepTimer=sleepTimer,
+                                         sensor_port=listenPort, locationName=locationName)
+            
+            return json.dumps(dataDict,  indent=1), status_code
+    
+    # if sensor id not in dictionary, send back 404 not found
+    return "Not Found", 404
+        
+    
+    
+
 
 # ----------------------------------------------------------------------------------
+# helper function that takes the request from client and url path and returns the message
+# and status code. If JSON data is returned, the data will be sent to client.
     
-def sendHttpToSensor(req, URL_path):
-    macadd = ""    
-    try:
-        data = req.get_json()
-        macadd = data["macadd"]
-    except:
-        return ("bad request", 400)
+def sendHttpToSensor(req, URL_path, macadd=""):
     
+    if macadd =="" or req == None:  
+        try:
+            data = req.get_json()
+            macadd = data["macadd"]
+        except:
+            return ("bad request", 400)
+        
     if macadd == "" or macadd not in tempRecords:
         return ("Not Found", 404)
     
@@ -117,11 +165,13 @@ def sendHttpToSensor(req, URL_path):
         return (response.text, response.status_code)
 
 # ----------------------------------------------------------------------------------
+# make full URI given ip address, port number and path
 
 def makeURI(ip:str, port:int, path:str):
     return "http://" + ip +":" + str(port) + path          
 
 # ----------------------------------------------------------------------------------
+# function handles login
 
 @app.route('/login', methods=['POST'])  # login
 def login():
@@ -149,6 +199,7 @@ def login():
         return "server error", 500
     
 # ----------------------------------------------------------------------------------
+# function for handling logout
 
 @app.route('/logout', methods=['POST'])  # login
 def logout():
@@ -170,6 +221,7 @@ def logout():
         return "server error", 500
 
 # ----------------------------------------------------------------------------------        
+#function handling signup
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -212,10 +264,7 @@ def generateSessionID(bstrSize, username):
     data = secrets.token_bytes(nbytes=bstrSize)
     sessionID = base64.b64encode(data).decode('utf-8')
     session[sessionID] = username
-    return sessionID
-    
-    
-    
+    return sessionID  
 
 def getTimeStamp():
     # returns the current time in military time (UTC) format

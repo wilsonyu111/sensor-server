@@ -8,23 +8,23 @@ class sensor:
         self.temp = temp
         self.hud = hud
         self.lastActive = self.__getLastActive()
-        self.sensor_id = sensor_id
-        self.location_name = location_name
         self.highest = temp
         self.lowest = temp
         self.tempAvg = temp
         self.hudAvg = hud
-        self.lightStatus = lightStat
         self.__dataCount = 1
         self.__tempSum = temp
         self.__hudSum = hud
+        self.lightStatus = lightStat
+        self.sensor_id = sensor_id
+        self.location_name = location_name
         self.ipadd = ipadd
-        self.listen_port = listen_port
+        self.listen_port = listen_port # sesnor listening port
         self.configTime = -1
         self.ssid = ""
         self.installed_light = False
-        self.destPort = -1
-        self.sleepTimmr = -1
+        self.destPort = -1 # raspberry pi's listening port, the port sensor will send data to
+        self.sleepTimer = -1
         
 
     def __updateHighAndLowTemp(self):
@@ -36,12 +36,15 @@ class sensor:
         if self.lowest > self.temp:
             self.lowest = self.temp
     
-    def updateDeviceConfig(self, configTime:int, ssid:str, installed_light:bool, destPort:int, sleepTimer: int):
-        self.configTime=configTime
+    def updateDeviceConfig(self, ipadd:str, ssid:str, locationName:str , configTime:int, sensor_port:int, destPort:int, sleepTimer: int, installed_light:bool,):
+        self.configTime = configTime
+        self.ipadd = ipadd
         self.ssid = ssid
         self.installed_light = installed_light
         self.destPort = destPort
-        self.sleepTimmr = sleepTimer
+        self.sleepTimer = sleepTimer
+        self.listen_port = sensor_port
+        self.location_name = locationName
     
     def compareTime(self, serverTime:int, sensorTime:int):
         return serverTime == sensorTime
@@ -97,4 +100,17 @@ class sensor:
             "lowest" : self.lowest,
             "temperature average" : self.tempAvg,
             "humidity average" : self.hudAvg
+        }
+    
+    def getConfigDict(self):
+        return {
+            "configured_time": self.configTime,
+            "mac_address": self.sensor_id,
+            "location": self.location_name,
+            "ip_address": self.ipadd,                        
+            "ssid": self.ssid,
+            "sensor_listening_port": self.listen_port,
+            "installed_light_sensor": self.installed_light,
+            "sleep_timer": self.sleepTimer,
+            "pi_server_port": self.destPort
         }
