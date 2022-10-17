@@ -9,13 +9,14 @@ import secrets
 import base64
 from http import cookies
 import requests
+from decouple import config
 
 tempRecords = {}
 port = 8086
-test_Uname = "wilson"
-test_Pwd="password"
-database = {test_Uname:bcrypt.hashpw(test_Pwd.encode(), bcrypt.gensalt())}
-SESSION_ID_LENGTH = 50
+username = config('user')
+password = config('password')
+database = {username:bcrypt.hashpw(password.encode(), bcrypt.gensalt())}
+SESSION_ID_LENGTH = 60
 
 app = Flask(__name__, static_url_path='', static_folder='build')
 CORS(app)
@@ -135,38 +136,47 @@ def sensorConfig():
 @app.route('/testSensorConfig', methods=['POST'])
 def testSensorConfig():
     
-    macadd = ""
-    try:
-        data = request.get_json()
-        macadd = data["MAC_ADDRESS"]
-    except:
-        print("data" + str(request.data))
-        return ("bad request", 400)
+    sensorObj = getSensorObject(request.get_json())
+    if not sensorObj:
+        return ("sensor not found", 404)
     
-    return json.dumps(tempRecords[macadd].getConfigDict(), indent=1), 200
+    return json.dumps(sensorObj.getConfigDict(), indent=1), 200
+#-----------------------------------------------------------------------------------
+# check if data is correct and if the sensor object exist, return the sensor object
 
-# ----------------------------------------------------------------------------------
+def getSensorObject(data):
+    
+    keyName = "MAC_ADDRESS"
+    if keyName in data:
+        macadd = data[keyName]
+        if macadd in tempRecords:
+            return tempRecords[macadd]
+    
+    return None
+
+
+#-----------------------------------------------------------------------------------
 # helper function that takes the request from client and url path and returns the message
 # and status code. If JSON data is returned, the data will be sent to client.
+
     
 def sendHttpToSensor(req, URL_path):
     
-    macadd = ""
-    try:
-        data = req.get_json()
-        macadd = data["MAC_ADDRESS"]
-    except:
-        print("data" + str(request.data))
-        return ("bad request", 400)
-    
-    if macadd in tempRecords:
-        sensorInfo = tempRecords[macadd]
-        httpURI = makeURI(sensorInfo.getConfig("sensor_ip"), sensorInfo.getConfig("listen_port"), URL_path)    
-        response = requests.get(url = httpURI)
-    else:
-        return ("Sensor Not Found", 404) 
+    sensorObj = getSensorObject(req.get_json())
+    if not sensorObj:
+        return ("sensor not found", 404)
         
+    httpURI = makeURI(sensorObj.getConfig("sensor_ip"), sensorObj.getConfig("listen_port"), URL_path)
     
+    # in general the timeout request should not happen
+    # if it does, it means the sensor is down
+    # wills need to implement extra logic to handle sensor alive check
+    try:    
+        response = requests.get(url = httpURI)
+    except:
+        return "sensor not avliable", 404        
+    
+    #either convert to 3 item tuple or 2 item tuple
     try:
         return (response.text, response.status_code, response.json())
     except:
@@ -187,7 +197,14 @@ def timeStampCheck(req, URL_path):
     sensorInfo = tempRecords[macadd]
     httpURI = makeURI(sensorInfo.getConfig("sensor_ip"), sensorInfo.getConfig("listen_port"), URL_path)
     
-    response = requests.get(url = httpURI, params=paramDict)
+    # in general the timeout request should not happen
+    # if it does, it means the sensor is down
+    # wills need to implement extra logic to handle sensor alive check
+    try:
+        response = requests.get(url = httpURI, params=paramDict)
+    except:
+        return "sensor not avliable", 404
+    
     
     try:
         return (response.text, response.status_code, response.json())
