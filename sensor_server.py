@@ -30,15 +30,26 @@ def sensors():
 
 # ----------------------------------------------------------------------------------
 # return a dictionary containing all sensor object's data
-@app.route('/getData', methods=['GET'])
-def getData():
-
+@app.route('/debugData', methods=['GET'])
+def getDebugData():
         debug = {}
         for i in tempRecords:
-                dictionary = tempRecords[i].getDict()
+                dictionary = tempRecords[i].getCollectionDict()
                 debug[i] = dictionary
                 
-        return json.dumps(debug, indent=4)
+        return json.dumps(debug, indent=2)
+    
+# ----------------------------------------------------------------------------------
+# return a dictionary containing all sensor object's data
+@app.route('/getData', methods=['GET'])
+def getData():
+        data = {}
+        for i in tempRecords:
+                dictionary = tempRecords[i].getDataDict()
+                dictionary["location"] = tempRecords[i].getConfig("location_name")
+                data[i] = dictionary
+                
+        return json.dumps(data, indent=2)
 
 # ----------------------------------------------------------------------------------
 
@@ -46,25 +57,21 @@ def getData():
 def receiveData():
 
         data = request.get_json()
-        tempF = float(data["temperature"])
-        hud = float(data["humidity"])
-        sensor_id = data["MAC_ADDRESS"]
-        location_name = data["location_name"]
-        lightStat=data["light_status"]
-        ipadd=data["sensor_IP"]
-        sensor_port=data["sensor_listen_port"]
+        dataDict = data["data"]
+        configDict = data["config"]
+        sensor_id = configDict["sensor_id"]
 
-        if (sensor_id in tempRecords):  # if the key exist
+        if ( sensor_id in tempRecords):  # if the key exist
 
-            updateSesnor = tempRecords[sensor_id]  # get the sensor object
+            updateSensor = tempRecords[sensor_id]  # get the sensor object
             # updates temp, hud and last active
-            updateSesnor.updateData(hud=hud, temp=tempF, lightStat=lightStat, ipadd=ipadd, listen_port=sensor_port)
+            updateSensor.updateData(dataDict)
+            updateSensor.updateConfig(configDict)
 
         else:  # if a location does not exist in dictionary add it
 
             # create a new sensor object for holding sensor informations
-            tempRecords[sensor_id] = sensor(
-                sensor_id=sensor_id, temp=tempF, hud=hud, location_name=location_name, lightStat=lightStat, ipadd=ipadd, listen_port=sensor_port)
+            tempRecords[sensor_id] = sensor(dataDict, configDict)
 
         return "received", 200
     
@@ -80,10 +87,16 @@ def restartSensor():
     return message, status_code
 
 # ----------------------------------------------------------------------------------
+
+# @app.route('/updateConfig', methods=['POST'])
+# def updateConfig():
+#     return None
+
+# ----------------------------------------------------------------------------------
 # check if sensor is online
 
 @app.route('/sensorOnline', methods=['GET'])
-def sensorHeartBeat():
+def sensorHeartbeat():
     
     (message, status_code) = sendHttpToSensor(req=request, URL_path="/online")
     return message, status_code
@@ -93,76 +106,99 @@ def sensorHeartBeat():
 # check if data already exist, if it does send a request to verify timestamp
 # if data does not exist or timestamp is not the same, request the data to be sent
 
-@app.route('/sensorConfig', methods=['GET'])
+@app.route('/sensorConfig', methods=['POST'])
 def sensorConfig():
     
-    try :
-         data = request.get_json()
-    except:
-        return "bad request", 400 
-
-    status_code = -1
-    sensorID = data["MAC_ADDRESS"]
-    if sensorID in tempRecords:
-        # send timestamp verification request to sensor
-        status_code = sendHttpToSensor(req=None, URL_path="/checkTimestamp", macadd=sensorID)[0]
-        sensorObj = sensor(tempRecords[sensorID])
-        if  status_code == 304:
+    result = timeStampCheck(req=request, URL_path="/timestampCheck")
+    
+    if result[1] == 304 or result [1] == 200:
+        macadd = request.get_json()["MAC_ADDRESS"]
+        sensorObj = tempRecords[macadd]
+    
+        if result[1] == 304:
+            
+            print("using cache")
             return json.dumps( sensorObj.getConfigDict(), indent=1), 200
-        else:
-            
-            # destruct tuple
-            (_, status_code, dataDict) = sendHttpToSensor(req=request, URL_path="/serverStat")
-            # update the data to match sensor
-            
-            configTime = int(dataDict["modified_time"])
-            ipadd = dataDict["sensor_IP"]
-            destPort=int(dataDict["destination_port"])
-            ssid = dataDict["ssid"]
-            installed_light = bool(dataDict["installed_light"])
-            sleepTimer = int(dataDict["sleep_time"])
-            listenPort = int("listen_port")
-            locationName = dataDict["location_name"]
-            
-            sensorObj.updateDeviceConfig(configTime=configTime, ipadd=ipadd, destPort=destPort, 
-                                         ssid=ssid, installed_light=installed_light, sleepTimer=sleepTimer,
-                                         sensor_port=listenPort, locationName=locationName)
-            
-            return json.dumps(dataDict,  indent=1), status_code
-    
-    # if sensor id not in dictionary, send back 404 not found
-    return "Not Found", 404
         
-    
-    
+        elif result[1] == 200:
+            
+            print("no cache")
+            configDict = result[2] 
+            sensorObj.updateConfig(configDict)
+            
+            return json.dumps(configDict,  indent=1), 200
+        
+    return result[0], result[1]
 
+#-----------------------------------------------------------------------------------
+
+@app.route('/testSensorConfig', methods=['POST'])
+def testSensorConfig():
+    
+    macadd = ""
+    try:
+        data = request.get_json()
+        macadd = data["MAC_ADDRESS"]
+    except:
+        print("data" + str(request.data))
+        return ("bad request", 400)
+    
+    return json.dumps(tempRecords[macadd].getConfigDict(), indent=1), 200
 
 # ----------------------------------------------------------------------------------
 # helper function that takes the request from client and url path and returns the message
 # and status code. If JSON data is returned, the data will be sent to client.
     
-def sendHttpToSensor(req, URL_path, macadd=""):
+def sendHttpToSensor(req, URL_path):
     
-    if macadd =="" or req == None:  
-        try:
-            data = req.get_json()
-            macadd = data["macadd"]
-        except:
-            return ("bad request", 400)
+    macadd = ""
+    try:
+        data = req.get_json()
+        macadd = data["MAC_ADDRESS"]
+    except:
+        print("data" + str(request.data))
+        return ("bad request", 400)
+    
+    if macadd in tempRecords:
+        sensorInfo = tempRecords[macadd]
+        httpURI = makeURI(sensorInfo.getConfig("sensor_ip"), sensorInfo.getConfig("listen_port"), URL_path)    
+        response = requests.get(url = httpURI)
+    else:
+        return ("Sensor Not Found", 404) 
         
-    if macadd == "" or macadd not in tempRecords:
-        return ("Not Found", 404)
-    
-    
-    sensorInfo = tempRecords[macadd]
-    httpURI = makeURI(sensorInfo.ipadd, sensorInfo.listen_port, URL_path)
-    
-    response = requests.get(url = httpURI)
     
     try:
         return (response.text, response.status_code, response.json())
     except:
         return (response.text, response.status_code)
+    
+def timeStampCheck(req, URL_path):
+    
+    macadd = ""
+    try:
+        data = req.get_json()
+        macadd = data["MAC_ADDRESS"]
+    except:
+        print(request)
+        return ("bad request", 400)
+    
+    paramDict = {"time_stamp": tempRecords[macadd].getConfig("config_timestamp")}
+    
+    sensorInfo = tempRecords[macadd]
+    httpURI = makeURI(sensorInfo.getConfig("sensor_ip"), sensorInfo.getConfig("listen_port"), URL_path)
+    
+    response = requests.get(url = httpURI, params=paramDict)
+    
+    try:
+        return (response.text, response.status_code, response.json())
+    except:
+        return (response.text, response.status_code)
+
+# ----------------------------------------------------------------------------------
+
+# @app.route('/updateConfig', methods=['POST'])
+# def processConfigUpdate():
+    
 
 # ----------------------------------------------------------------------------------
 # make full URI given ip address, port number and path
@@ -186,11 +222,12 @@ def login():
     if username in database and bcrypt.checkpw(password, database[username]):
         
         sessionID = generateSessionID(SESSION_ID_LENGTH, username)
-        print(sessionID)
-        # sessionCookie = "sessionId="+sessionID+"; Max-Age="+str(300)+";"
+        session[username] = sessionID
+            
         resp = make_response()
-        resp.set_cookie('sessionID', value=sessionID, max_age=300)
+        resp.set_cookie('sessionID', value=session[username], max_age=300)
         return resp, 200
+        
     elif username in database:
         return "wrong password", 401
     elif username not in database:
@@ -208,7 +245,7 @@ def logout():
         data = request.get_json()
         username = data["username"]
     except:
-        return "bad request", 400
+        return "user does not exist", 400
     
     if username in database and username in session:
         session.pop(username, None)
