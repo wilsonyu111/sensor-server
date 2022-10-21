@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="/static/css/style.css"
+        <link rel="stylesheet" type="text/css" href="/static/css/style.css">
         <title> petaluma </title>
     </head>
 
@@ -10,46 +10,57 @@
         {% for num in range(size) %}
 
             {% if num|string in temps%}
-
-                <div>
-                    <p><h1> {{temps[num|string][0]}} </h1> </p>
-                        
-                    
-                        <p style="float: left; padding-right:10px"> 
+            <div class = info_container>
+                <div class="location"> <h1> {{temps[num|string][0]}} </h1></div>
+                <div class="info_division"> 
+                    <div class =main_box>
+                                            
+                        <div style="float: left; padding-right:10px" class="icon"> 
                             <img src="/static/img/temp.png" alt="no img" width = "70" height= "70"/> 
-                        </p>
+                        </div>
 
-                    <p>
-                        <h3 class="temperature"> temperature </h3>
-                        <h2 class="temperature"> {{temps[num|string][1]}} F</h2>
-                    </p>
-                </div>
+                        <div class="font_division">
+                            <div class="title_font"><h3>temperature</h3></div>
+                            <div class="value_font"><h2>{{temps[num|string][1]}} F</h2></div>
+                        </div>
+                    </div>
 
-                <br>
-                <div>
-                    <p style="float: left; padding-right:10px"> 
-                        <img src="/static/img/water-drop.png" alt="no img" width = "70" height= "70"/> 
-                    </p>
-                    
-                    <p>
-                        <h3 class="hudmidity"> hudmidity </h3>
-                        <h2 class="hudmidity"> {{temps[num|string][2]}} %</h2>
-                    </p>
+                    <div class=main_box>
+                        <div style="float: left; padding-right:10px" class="icon"> 
+                            <img src="/static/img/water-drop.png" alt="no img" width = "70" height= "70"/> 
+                        </div>
+                        
+                        <div class="font_division">
+                            <div class="title_font"><h3> hudmidity </h3></div>
+                            <div class="value_font"> <h2> {{temps[num|string][2]}} %</h2></div>
+                        </div>
+                    </div>
 
+                    <div class=main_box>
+                        <div style="float: left; padding-right:10px" class="icon"> 
+                            <img src="/static/img/future.png" alt="no img" width = "70" height= "70"/> 
+                        </div>
+                        
+                        <div class="font_division">
+                            <div class="title_font"><h3> last active </h3></div>
+                            <div class="value_font"><h3> {{temps[num|string][3]}}</h3> </div>
+                        </div>
+                        
+                    </div>
+
+                    <div class=main_box>
+                        <div style="float: left; padding-right:10px" class="icon"> 
+                            <img src="/static/img/light-bulb.png" alt="no img" width = "70" height= "70"/> 
+                        </div>
+                        
+                        <div class=font_division>
+                            <div class="title_font"> <h3> lighting</h3> </div>
+                            <div class="value_font"> <h3> {{temps[num|string][4]}}</h3> </div>
+                        </div>
+                        
+                    </div>
                 </div>
-                <br>    
-                <div>
-                    <p style="float: left; padding-right:10px"> 
-                        <img src="/static/img/future.png" alt="no img" width = "70" height= "70"/> 
-                    </p>
-                    
-                    <p>
-                        <h3 class="active"> last active </h3>
-                        <h3 class="active"> {{temps[num|string][3]}}</h3>
-                    </p>
-                    
-                </div>
-                <br>
+            </div>
             {% endif %}
 
         {% endfor %}
