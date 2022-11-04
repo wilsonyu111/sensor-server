@@ -15,12 +15,13 @@ tempRecords = {}
 port = 8086
 username = config('user')
 password = config('password')
+secretKey = config('secret_key')
 database = {username:bcrypt.hashpw(password.encode(), bcrypt.gensalt())}
 SESSION_ID_LENGTH = 60
 
+
 app = Flask(__name__, static_url_path='', static_folder='build')
-CORS(app)
-app.secret_key = "testsession"
+app.secret_key = secretKey
 
 # ----------------------------------------------------------------------------------
 
@@ -338,5 +339,5 @@ def getYear():
 if __name__ == "__main__":  # in order to run it as main, it needs to be ran as python "file_name"
 
     # allow the server to run in debug mode without setting it in console
-    app.run(debug=True, host='0.0.0.0', port="5000")
+    app.run(host='0.0.0.0', port="5000")
     
