@@ -1,13 +1,12 @@
 from tkinter import W
 from sensor_stat import sensor
 from flask_cors import CORS 
-from flask import Flask, request, send_from_directory, session, make_response
+from flask import Flask, request, send_from_directory, make_response
 import json
 import datetime
 import bcrypt
 import secrets
 import base64
-from http import cookies
 import requests
 from decouple import config
 
@@ -18,10 +17,15 @@ password = config('password')
 secretKey = config('secret_key')
 database = {username:bcrypt.hashpw(password.encode(), bcrypt.gensalt())}
 SESSION_ID_LENGTH = 60
-
+session = {}
+ # to achieve "only one user can login at one time"
+ # one user account can only have one session id
+ # this is enforced by having session and userSessionMap
+userSessionMap = {}
 
 app = Flask(__name__, static_url_path='', static_folder='build')
 app.secret_key = secretKey
+CORS(app)
 
 # ----------------------------------------------------------------------------------
 
@@ -80,11 +84,15 @@ def receiveData():
 
 
 # ----------------------------------------------------------------------------------
+# require authorization
 # restart sensor
-    
-@app.route('/restartSensor', methods=['GET'])
+
+
+@app.route('/restartSensor', methods=['POST'])
 def restartSensor():
     
+    if not checkSessionID(request.get_json()["session_key"]): 
+        return "not authorized", 400
     (message, status_code) = sendHttpToSensor(req=request, URL_path="/restart")
     return message, status_code
 
@@ -97,13 +105,14 @@ def restartSensor():
 # ----------------------------------------------------------------------------------
 # check if sensor is online
 
-@app.route('/sensorOnline', methods=['GET'])
+@app.route('/sensorOnline', methods=['POST'])
 def sensorHeartbeat():
     
     (message, status_code) = sendHttpToSensor(req=request, URL_path="/online")
     return message, status_code
 
 # ----------------------------------------------------------------------------------
+# require authorization
 # request sensor config data
 # check if data already exist, if it does send a request to verify timestamp
 # if data does not exist or timestamp is not the same, request the data to be sent
@@ -111,6 +120,8 @@ def sensorHeartbeat():
 @app.route('/sensorConfig', methods=['POST'])
 def sensorConfig():
     
+    if not checkSessionID(request.get_json()["session_key"]): 
+        return "not authorized", 401
     result = timeStampCheck(req=request, URL_path="/timestampCheck")
     
     if result[1] == 304 or result [1] == 200:
@@ -137,11 +148,32 @@ def sensorConfig():
 @app.route('/testSensorConfig', methods=['POST'])
 def testSensorConfig():
     
-    sensorObj = getSensorObject(request.get_json())
-    if not sensorObj:
-        return ("sensor not found", 404)
+    # sensorObj = getSensorObject(request.get_json())
+    # if not sensorObj:
+    #     return ("sensor not found", 404)
     
-    return json.dumps(sensorObj.getConfigDict(), indent=1), 200
+    # return json.dumps(sensorObj.getConfigDict(), indent=1), 200
+    
+    result = timeStampCheck(req=request, URL_path="/timestampCheck")
+    
+    if result[1] == 304 or result [1] == 200:
+        macadd = request.get_json()["MAC_ADDRESS"]
+        sensorObj = tempRecords[macadd]
+    
+        if result[1] == 304:
+            
+            print("using cache")
+            return json.dumps( sensorObj.getConfigDict(), indent=1), 200
+        
+        elif result[1] == 200:
+            
+            print("no cache")
+            configDict = result[2] 
+            sensorObj.updateConfig(configDict)
+            
+            return json.dumps(configDict,  indent=1), 200
+        
+    return result[0], result[1]
 #-----------------------------------------------------------------------------------
 # check if data is correct and if the sensor object exist, return the sensor object
 
@@ -193,6 +225,9 @@ def timeStampCheck(req, URL_path):
         print(request)
         return ("bad request", 400)
     
+    if macadd not in tempRecords:
+        return ("bad request", 400)
+    
     paramDict = {"time_stamp": tempRecords[macadd].getConfig("config_timestamp")}
     
     sensorInfo = tempRecords[macadd]
@@ -240,10 +275,11 @@ def login():
     if username in database and bcrypt.checkpw(password, database[username]):
         
         sessionID = generateSessionID(SESSION_ID_LENGTH, username)
-        session[username] = sessionID
+        session[sessionID] = username
+        userSessionMap[username] = sessionID
             
         resp = make_response()
-        resp.set_cookie('sessionID', value=session[username], max_age=300)
+        resp.set_cookie('sessionID', value=sessionID, max_age=300)
         return resp, 200
         
     elif username in database:
@@ -265,12 +301,14 @@ def logout():
     except:
         return "user does not exist", 400
     
-    if username in database and username in session:
-        session.pop(username, None)
+    if username in database and username in userSessionMap:
+        sessionID = userSessionMap[username]
+        userSessionMap.pop(username, None)
+        session.pop(sessionID, None)
         return "logged out", 200
     elif username not in database:
         return "user does not exist", 400
-    elif username not in session:
+    elif username not in userSessionMap:
         return "bad request", 400
     else:
         return "server error", 500
@@ -335,9 +373,18 @@ def getYear():
     # Return the current year as a string
     return datetime.datetime.now().strftime("%Y")
 
+def checkSessionID(sessionID):
+    if sessionID in session:
+        print(session[sessionID])
+        for i in session:
+            print(i)
+        return True
+    
+    return False
+
 
 if __name__ == "__main__":  # in order to run it as main, it needs to be ran as python "file_name"
 
     # allow the server to run in debug mode without setting it in console
-    app.run(host='0.0.0.0', port="5000")
+    app.run(host='0.0.0.0', port="5000", debug=True)
     

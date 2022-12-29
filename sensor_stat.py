@@ -1,6 +1,5 @@
 import datetime
-from http import server
-from time import sleep
+import time
 
 class sensor:
 
