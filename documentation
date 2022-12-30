@@ -1,0 +1,57 @@
+API end point:
+/login
+/logout
+/sendtoserver
+/debugData
+/
+/getData 
+/restartSensor (merge into /checkAction)
+/checkAction
+/sensorConfig  (merge into /checkAction)
+/updateCOnfig  (merge into /checkAction)
+/testSensorConfig
+/sensorOnline  (merge into /checkAction)
+
+/login
+    This endpoint takes a JSON with username and password and generate a sessionID with max_age of 300
+
+        {
+            "username":uname,
+            "password":pwd
+        }
+
+    status code
+        200 : response of session cookie with max_age and sessionID
+        401 : (wrong password) or (username does not exist)
+        500 : (server error)
+
+/logout
+    This endpoint takes a JSON with username and remove the sessionID associated with this user from the database
+        {
+            "username":uname
+        }
+    
+    status code
+        200 : logout sucessful
+        401 : (wrong password) or (username does not exist)
+        500 : (server error)
+
+/sendtoserver
+    This endpoint takes the sensor data in JSON format and create a sensor object that is stored in the dictionary
+    The key is the mac address of the sensor and the vlaue will be the sensor object
+    The json data contains is 2 level like so
+
+    {
+        "data":{"temperature":"99.1","humidity":"11.2%","light_status":"N/A"},
+        "config":{"sensor_id":"C0:49:EF:EF:FD:D8","location_name":"5","sensor_ip":"192.168.1.183","listen_port":"80"}
+    }
+    The data value contains sensor captured data
+    The config value contain sensor configuration
+
+    status code
+        200 : got data
+
+/updateCOnfig 
+    This will be merged into /checkAction, it requires mac_address, and updated data
+
+

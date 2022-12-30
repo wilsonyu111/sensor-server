@@ -1,43 +1,43 @@
 import datetime
 import time
 
+
 class sensor:
 
     def __init__(self, data, config):
-        
+
         self.collectionDict = {
-            "data" : {
-                "temperature" : 0.0,
-                "humidity" : 0,
-                "last_active" : self.__getLastActive(),
-                "light_status" : "n/a"
+            "data": {
+                "temperature": 0.0,
+                "humidity": 0,
+                "last_active": self.__getLastActive(),
+                "light_status": "n/a"
             },
-            "config" : {
-                "sensor_id" : "",
-                "location_name" : "",
-                "sensor_ip" : "",
-                "server_ip" : "",
-                "listen_port" : -1,
-                "config_timestamp" : -1,
-                "ssid" : "",
-                "installed_light" : False,
-                "dest_port" : -1,
-                "sleep_timer" : -1
+            "config": {
+                "sensor_id": "",
+                "location_name": "",
+                "sensor_ip": "",
+                "server_ip": "",
+                "listen_port": -1,
+                "modified_time": -1,
+                "ssid": "",
+                "installed_light": 0,
+                "dest_port": -1,
+                "sleep_timer": -1
             }
         }
         # self.collectionDict = {
         #     "data" : {}, "config" : {}
         # }
-        
+
         self.updateData(data)
         self.updateConfig(config)
 
-    
-    def __updateCollectionDict(self, data, type:str):
-        
+    def __updateCollectionDict(self, data, type: str):
+
         for i in data:
-            self.collectionDict[type][i] = data[i]
-        
+            if i in self.collectionDict[type]:
+                self.collectionDict[type][i] = data[i]
 
     def __getLastActive(self):
         return datetime.datetime.now().strftime(
@@ -46,16 +46,15 @@ class sensor:
     def updateData(self, data):
         self.__updateCollectionDict(data, "data")
         self.collectionDict["data"]["last_active"] = self.__getLastActive()
-    
+
     def updateConfig(self, config):
         self.__updateCollectionDict(config, "config")
-        
+
     def getData(self, valName: str):
         return self.collectionDict["data"][valName]
-    
+
     def getConfig(self, valName: str):
         return self.collectionDict["config"][valName]
-        
 
     def toString(self):
         return "temperature: " + str(self.getValue("temperature")) \
@@ -69,9 +68,9 @@ class sensor:
 
     def getDataDict(self):
         return self.collectionDict["data"]
-    
+
     def getConfigDict(self):
         return self.collectionDict["config"]
-     
+
     def getCollectionDict(self):
         return self.collectionDict
